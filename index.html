@@ -449,18 +449,25 @@ document.getElementById('btn-login').addEventListener('click', loginClick);
 document.getElementById('inp-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') loginClick(); });
 
 async function loginClick(){
-  const user=document.getElementById('inp-user').value.trim().toLowerCase();
-  const pass=document.getElementById('inp-pass').value;
+  const user=document.getElementById('inp-user').value.trim().toLowerCase().replace(/@.*$/,'');
+  const pass=document.getElementById('inp-pass').value.trim();
   const errEl=document.getElementById('login-err');
   errEl.style.display='none';
   if(!user||!pass){toast('Ingresa usuario y contraseña','err');return;}
   loading('Entrando...');
   try{
-    const cleanUser=user.includes('@')?user.split('@')[0]:user;
-    await auth.signInWithEmailAndPassword(cleanUser+'@'+CFG.dominio, pass);
-  } catch(e){
+    const snap=await db.collection('usuarios').where('username','==',user).limit(1).get();
+    if(snap.empty){done();errEl.style.display='block';return;}
+    const doc=snap.docs[0];
+    const hash=await sha256(pass);
+    if(doc.data().passwordHash!==hash){done();errEl.style.display='block';return;}
+    CU={uid:doc.id};
+    CD=doc.data();
+    saveSession(doc.id,CD);
     done();
-    errEl.style.display='block';
+    if(CD.rol==='admin'){initAdmin();}else{initWorker();}
+  }catch(e){
+    done();console.error(e);errEl.style.display='block';
   }
 }
 
