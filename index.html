@@ -247,7 +247,16 @@ canvas{display:none}
 <!-- AVISOS WORKER -->
 <div id="screen-avisos" class="screen">
   <div class="topbar"><div class="topbar-left"><h1>📢 Avisos</h1></div><button onclick="goTab('home')">← Volver</button></div>
-  <div class="scroll-area" id="avisos-list"></div>
+  <div class="scroll-area">
+    <div style="background:var(--dark2);border:1px solid rgba(52,152,219,.3);border-radius:12px;padding:14px;margin-bottom:16px;font-size:12px;line-height:1.7">
+      <div style="color:var(--info);font-weight:700;margin-bottom:4px">🔔 Recibe avisos en tu celular</div>
+      <div style="color:var(--muted)">Instala <b style="color:var(--text)">Ntfy</b> (gratis) → suscríbete al canal: 
+        <span onclick="copyWorkerTopic()" style="color:var(--info);font-family:monospace;cursor:pointer;text-decoration:underline" id="wk-topic-span">cholao-avisos-elcho2026</span> 
+        <span style="color:var(--muted)">(toca para copiar)</span>
+      </div>
+    </div>
+    <div id="avisos-list"></div>
+  </div>
 </div>
 
 <!-- CAMERA -->
@@ -294,6 +303,7 @@ canvas{display:none}
       <div class="atab" id="at-work" onclick="admTab('work')">👥 Personal</div>
       <div class="atab" id="at-add" onclick="admTab('add')">➕ Agregar</div>
       <div class="atab" id="at-aviso" onclick="admTab('aviso')">📢 Avisos</div>
+      <div class="atab" id="at-ntfy" onclick="admTab('ntfy')">🔔 Notif.</div>
     </div>
     <div id="adm-content"></div>
   </div>
@@ -334,7 +344,10 @@ const CFG={
     "Miraflores":{lat:-8.373036191737329,lng:-74.56365781122405}
   },
   radio:50,
-  tolerancia:15
+  tolerancia:15,
+  // Canales Ntfy — NO cambiar, son únicos para El Cholao
+  ntfyAdmin:"cholao-admin-elcho2026",    // Admin se suscribe a este
+  ntfyAvisos:"cholao-avisos-elcho2026"   // Trabajadores se suscriben a este
 };
 const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
@@ -754,12 +767,13 @@ async function loadAdmStats(){
 }
 
 function admTab(tab){
-  ['reg','alert','work','add','aviso'].forEach(t=>document.getElementById('at-'+t)?.classList.toggle('on',t===tab));
+  ['reg','alert','work','add','aviso','ntfy'].forEach(t=>document.getElementById('at-'+t)?.classList.toggle('on',t===tab));
   if(tab==='reg')loadAdmReg();
   else if(tab==='alert')loadAdmAlert();
   else if(tab==='work')loadAdmWork();
   else if(tab==='add')loadAdmAdd();
   else if(tab==='aviso')loadAdmAviso();
+  else if(tab==='ntfy')loadAdmNtfy();
 }
 
 // REGISTROS
@@ -894,21 +908,21 @@ async function openSchedModal(uid){
       const isDesc=!raw||raw==='descanso'||(raw&&raw.hora==='descanso');
       const hora=!raw||typeof raw==='string'?(raw==='descanso'?'06:30':raw||'06:30'):raw.hora||'06:30';
       const loc=typeof raw==='object'&&raw?raw.local||u.local:'Amazonas';
-      return`<div style="margin-bottom:10px;background:var(--dark3);border-radius:10px;padding:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:600">${dia}</span>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
-            <input type="checkbox" id="hd-${i}" ${isDesc?'checked':''} onchange="toggleDesc(${i})"> Descanso
-          </label>
-        </div>
-        <div id="hrow-${i}" style="${isDesc?'display:none':'display:grid;grid-template-columns:1fr 1fr;gap:8px'}">
-          <input type="time" id="hs-${i}" value="${hora}" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">
-          <select id="hl-${i}" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">
-            <option value="Amazonas" ${loc==='Amazonas'?'selected':''}>Amazonas</option>
-            <option value="Miraflores" ${loc==='Miraflores'?'selected':''}>Miraflores</option>
-          </select>
-        </div>
-      </div>`;
+      return '<div style="margin-bottom:10px;background:var(--dark3);border-radius:10px;padding:10px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'+
+          '<span style="font-size:13px;font-weight:600">'+dia+'</span>'+
+          '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">'+
+            '<input type="checkbox" id="hd-'+i+'" '+(isDesc?'checked':'')+' onchange="toggleDesc('+i+')"> Descanso'+
+          '</label>'+
+        '</div>'+
+        '<div id="hrow-'+i+'" style="'+(isDesc?'display:none':'display:grid;grid-template-columns:1fr 1fr;gap:8px')+'">'+
+          '<input type="time" id="hs-'+i+'" value="'+hora+'" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">'+
+          '<select id="hl-'+i+'" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">'+
+            '<option value="Amazonas" '+(loc==='Amazonas'?'selected':'')+'>Amazonas</option>'+
+            '<option value="Miraflores" '+(loc==='Miraflores'?'selected':'')+'>Miraflores</option>'+
+          '</select>'+
+        '</div>'+
+      '</div>';
     }).join('');
     done();openModal('sched-modal');
   }catch(e){done();toast('Error al cargar','err');}
@@ -939,41 +953,44 @@ async function saveSchedule(){
 }
 
 // ADD WORKER
+function buildHorarioGrid(prefix){
+  return DIAS.map((dia,i)=>{
+    return '<div style="margin-bottom:8px;background:var(--dark3);border-radius:10px;padding:10px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'+
+        '<span style="font-size:13px;font-weight:600">'+dia+'</span>'+
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">'+
+          '<input type="checkbox" id="'+prefix+'d-'+i+'" onchange="toggleNewDesc('+i+')"> Descanso'+
+        '</label>'+
+      '</div>'+
+      '<div id="'+prefix+'row-'+i+'" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<input type="time" id="'+prefix+'h-'+i+'" value="06:30" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">'+
+        '<select id="'+prefix+'l-'+i+'" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">'+
+          '<option value="Amazonas">Amazonas</option>'+
+          '<option value="Miraflores">Miraflores</option>'+
+        '</select>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
 function loadAdmAdd(){
-  document.getElementById('adm-content').innerHTML=`
-    <div class="form-card">
-      <h3>➕ Agregar Trabajador</h3>
-      <div class="fg"><label>Nombre completo</label><input type="text" id="n-nombre" placeholder="Ej: María López"></div>
-      <div class="fg"><label>Usuario (sin espacios)</label><input type="text" id="n-user" placeholder="Ej: maria.lopez" autocapitalize="none" autocorrect="off"></div>
-      <div class="fg"><label>Contraseña (mín. 6 caracteres)</label><input type="password" id="n-pass" placeholder="••••••••"></div>
-      <div class="fg"><label>Local sede</label>
-        <select id="n-local"><option value="Amazonas">Amazonas</option><option value="Miraflores">Miraflores</option></select>
-      </div>
-      <div class="fg">
-        <label>Horario por día</label>
-        <div id="new-horario-grid">
-          ${DIAS.map((dia,i)=>`
-          <div style="margin-bottom:8px;background:var(--dark3);border-radius:10px;padding:10px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-              <span style="font-size:13px;font-weight:600">${dia}</span>
-              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
-                <input type="checkbox" id="nd-${i}" onchange="toggleNewDesc(${i})"> Descanso
-              </label>
-            </div>
-            <div id="nrow-${i}" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <input type="time" id="nh-${i}" value="06:30" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">
-              <select id="nl-${i}" style="padding:8px;background:var(--dark4);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none">
-                <option value="Amazonas">Amazonas</option>
-                <option value="Miraflores">Miraflores</option>
-              </select>
-            </div>
-          </div>`).join('')}
-        </div>
-      </div>
-      <div class="fg"><label>Notas (opcional)</label><input type="text" id="n-notas" placeholder="Ej: Rota entre locales los martes"></div>
-      <button class="btn btn-brand" onclick="crearTrabajador()" style="margin-top:8px">✅ Crear Trabajador</button>
-      <p class="status-msg" id="create-msg"></p>
-    </div>`;
+  const el=document.getElementById('adm-content');
+  el.innerHTML=
+    '<div class="form-card">'+
+      '<h3>➕ Agregar Trabajador</h3>'+
+      '<div class="fg"><label>Nombre completo</label><input type="text" id="n-nombre" placeholder="Ej: María López"></div>'+
+      '<div class="fg"><label>Usuario (sin espacios)</label><input type="text" id="n-user" placeholder="Ej: maria.lopez" autocapitalize="none" autocorrect="off"></div>'+
+      '<div class="fg"><label>Contraseña (mín. 6 caracteres)</label><input type="password" id="n-pass" placeholder="••••••••"></div>'+
+      '<div class="fg"><label>Local sede principal</label>'+
+        '<select id="n-local"><option value="Amazonas">Amazonas</option><option value="Miraflores">Miraflores</option></select>'+
+      '</div>'+
+      '<div class="fg"><label>Horario por día (hora + sede)</label>'+
+        '<div id="new-horario-grid">'+buildHorarioGrid('n')+'</div>'+
+      '</div>'+
+      '<div class="fg"><label>Notas (opcional)</label><input type="text" id="n-notas" placeholder="Ej: Rota entre locales los martes"></div>'+
+      '<button class="btn btn-brand" onclick="crearTrabajador()" style="margin-top:8px">✅ Crear Trabajador</button>'+
+      '<p class="status-msg" id="create-msg"></p>'+
+    '</div>';
 }
 
 function toggleNewDesc(i){
@@ -981,6 +998,7 @@ function toggleNewDesc(i){
   const row=document.getElementById('nrow-'+i);
   if(row)row.style.display=cb.checked?'none':'grid';
 }
+
 
 async function crearTrabajador(){
   const nombre=document.getElementById('n-nombre')?.value.trim();
@@ -1064,9 +1082,11 @@ async function publicarAviso(){
       adminId:CU.uid
     });
     done();toast('✅ Aviso publicado','ok');
+    // Notificar a todos los trabajadores via Ntfy
+    ntfySend(CFG.ntfyAvisos,'📢 Aviso de El Cholao: '+titulo,texto,'loudspeaker');
     document.getElementById('av-titulo').value='';
     document.getElementById('av-texto').value='';
-    if(msg){msg.style.color='var(--success)';msg.textContent='✅ Publicado';}
+    if(msg){msg.style.color='var(--success)';msg.textContent='✅ Publicado y notificado';}
     loadAvisosList();
   }catch(e){done();toast('Error al publicar','err');}
 }
@@ -1135,6 +1155,22 @@ function showNotif(titulo,cuerpo){
   catch(e){console.log('notif:',e);}
 }
 
+// ---- NTFY PUSH NOTIFICATIONS (funciona con celular cerrado) ----
+async function ntfySend(topic, titulo, mensaje, tags='bell'){
+  try{
+    await fetch('https://ntfy.sh/'+topic,{
+      method:'POST',
+      headers:{
+        'Title': titulo,
+        'Priority': 'default',
+        'Tags': tags,
+        'Content-Type': 'text/plain'
+      },
+      body: mensaje
+    });
+  }catch(e){console.log('ntfy error:',e);}
+}
+
 let notifListener=null;
 function startNotifListener(){
   if(!('Notification' in window))return;
@@ -1201,6 +1237,67 @@ function addWorkerNotifButton(){
     if(r==='granted'){btn.textContent='🔔✅';}
   };
   topbar.insertBefore(btn,topbar.querySelector('button'));
+}
+
+// NTFY SETUP PANEL
+function loadAdmNtfy(){
+  const c=document.getElementById('adm-content');
+  c.innerHTML=
+    '<div class="form-card" style="margin-bottom:16px">'+
+      '<h3>🔔 Configurar Notificaciones Push</h3>'+
+      '<p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">'+
+        'Usa la app gratuita <b style="color:var(--text)">Ntfy</b> para recibir notificaciones '+
+        'aunque el celular esté cerrado. Sin costo, sin registro.'+
+      '</p>'+
+      '<div style="background:var(--dark3);border-radius:12px;padding:16px;margin-bottom:12px">'+
+        '<div style="font-size:12px;color:var(--brand);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">'+
+          '👑 CANAL DEL ADMIN (solo tú)'+
+        '</div>'+
+        '<div style="font-size:13px;margin-bottom:8px">Recibes cuando alguien marca entrada o salida:</div>'+
+        '<div style="background:var(--dark4);padding:10px 14px;border-radius:8px;font-family:monospace;font-size:14px;color:var(--success);display:flex;justify-content:space-between;align-items:center">'+
+          '<span id="admin-topic">'+CFG.ntfyAdmin+'</span>'+
+          '<button onclick="copyTopic('admin-topic')" style="background:var(--dark3);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">Copiar</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:var(--dark3);border-radius:12px;padding:16px;margin-bottom:20px">'+
+        '<div style="font-size:12px;color:var(--info);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">'+
+          '👥 CANAL DE TRABAJADORES'+
+        '</div>'+
+        '<div style="font-size:13px;margin-bottom:8px">Comparte este canal con tus trabajadores:</div>'+
+        '<div style="background:var(--dark4);padding:10px 14px;border-radius:8px;font-family:monospace;font-size:14px;color:var(--info);display:flex;justify-content:space-between;align-items:center">'+
+          '<span id="worker-topic">'+CFG.ntfyAvisos+'</span>'+
+          '<button onclick="copyTopic('worker-topic')" style="background:var(--dark3);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">Copiar</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:13px;color:var(--muted);line-height:1.8">'+
+        '<b style="color:var(--text)">Pasos para activar:</b><br>'+
+        '1. Descarga <b style="color:var(--text)">Ntfy</b> en Play Store o App Store (gratis)<br>'+
+        '2. Abre la app → toca <b style="color:var(--text)">+</b> → escribe el canal<br>'+
+        '3. ¡Listo! Recibirás notificaciones automáticamente'+
+      '</div>'+
+      '<button onclick="testNtfy()" class="btn btn-brand" style="margin-top:16px">📨 Enviar notificación de prueba</button>'+
+    '</div>';
+}
+
+function copyTopic(id){
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>toast('✅ Copiado: '+text,'ok')).catch(()=>{
+    // Fallback
+    const el=document.createElement('textarea');
+    el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);
+    toast('✅ Copiado','ok');
+  });
+}
+
+async function testNtfy(){
+  toast('Enviando prueba...','');
+  await ntfySend(CFG.ntfyAdmin,'🧪 Prueba El Cholao','Si ves esto, las notificaciones funcionan ✅','white_check_mark');
+  await ntfySend(CFG.ntfyAvisos,'🧪 Prueba El Cholao','Notificaciones de avisos funcionando ✅','loudspeaker');
+  toast('✅ Enviado! Revisa Ntfy en tu celular','ok');
+}
+
+function copyWorkerTopic(){
+  navigator.clipboard.writeText(CFG.ntfyAvisos).then(()=>toast('✅ Canal copiado: '+CFG.ntfyAvisos,'ok')).catch(()=>toast(CFG.ntfyAvisos,''));
 }
 </script>
 </body>
