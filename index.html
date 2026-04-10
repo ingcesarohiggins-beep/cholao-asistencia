@@ -453,21 +453,35 @@ async function loginClick(){
   const pass=document.getElementById('inp-pass').value.trim();
   const errEl=document.getElementById('login-err');
   errEl.style.display='none';
-  if(!user||!pass){toast('Ingresa usuario y contraseña','err');return;}
-  loading('Entrando...');
+  document.getElementById('btn-login').disabled=true;
+  document.getElementById('btn-login').textContent='Verificando...';
   try{
     const snap=await db.collection('usuarios').where('username','==',user).limit(1).get();
-    if(snap.empty){done();errEl.style.display='block';return;}
+    if(snap.empty){
+      errEl.style.display='block';
+      document.getElementById('btn-login').disabled=false;
+      document.getElementById('btn-login').textContent='Entrar →';
+      return;
+    }
     const doc=snap.docs[0];
     const hash=await sha256(pass);
-    if(doc.data().passwordHash!==hash){done();errEl.style.display='block';return;}
+    const data=doc.data();
+    if(data.passwordHash!==hash){
+      errEl.style.display='block';
+      document.getElementById('btn-login').disabled=false;
+      document.getElementById('btn-login').textContent='Entrar →';
+      return;
+    }
     CU={uid:doc.id};
-    CD=doc.data();
-    saveSession(doc.id,CD);
-    done();
+    CD=data;
+    saveSession(doc.id,data);
     if(CD.rol==='admin'){initAdmin();}else{initWorker();}
   }catch(e){
-    done();console.error(e);errEl.style.display='block';
+    console.error('LOGIN ERROR:',e);
+    errEl.textContent='Error: '+e.message;
+    errEl.style.display='block';
+    document.getElementById('btn-login').disabled=false;
+    document.getElementById('btn-login').textContent='Entrar →';
   }
 }
 
